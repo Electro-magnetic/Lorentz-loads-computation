@@ -1,0 +1,121 @@
+!!! this ANSYS APDL macro computes the time history of the Lorentz loads (net forces and moments) in any ITER components
+!!! it is specific for the case when the toroidal field is not implemented in the simulation (the routine introduces it analitically)
+!!! nset XCC YCC ZCC and 'NAME' must be specified  
+!!! the file L_forc.txt will be saved
+
+!!! Author: P. Testoni 02/07/2020
+
+/post1
+
+AF0=5.3*6.2
+
+! number of load steps of the transient simulation
+nset= XXX
+
+! coordinates of the pivot point for moment computation
+
+XCC= xx
+YCC= xx
+ZCC= xx
+
+! name of the component where the loads have to be computed
+
+name='NAME'
+
+
+csys,0  
+wpcsys,-1
+
+set,first
+
+*do,i,1,nset
+
+
+CMSEL,S,name
+
+
+
+Xc= XCC
+Yc= YCC
+Zc= ZCC
+
+ 
+
+ETABLE,vol,VOLU,
+
+ETAB, centx, CENT, X
+ETAB, centy, CENT, Y
+ETAB, centz, CENT, Z
+
+SMULT,x_quad,CENTX,CENTX,1,1,
+SMULT,y_quad,CENTy,CENTy,1,1,      
+SADD,x_piu_y_quad,X_QUAD,Y_QUAD,1,1, ,  
+SEXP,radius,X_PIU_Y_, ,0.5,1,  
+
+SMULT,r_quad,radius,radius,1,1, 
+SEXP,r_quad_inv,r_quad, ,-1,1, 
+SMULT,Bt_x,r_quad_inv,CENTy,AF0,-1,  
+SMULT,Bt_y,r_quad_inv,CENTx,AF0,1,  
+
+ETABLE,bbx,B,X 
+ETABLE,bby,B,y 
+
+SADD,bx,bbx,Bt_x,1,1, ,  
+SADD,by,bby,Bt_y,1,1, ,  
+
+ 
+ETABLE,bz,B,z   
+
+ETABLE,jx,JT,X 
+ETABLE,jy,JT,y 
+ETABLE,jz,JT,z 
+
+
+SADD,RX,CENTX, ,1,1,-XC,
+SADD,RY,CENTY, ,1,1,-YC,
+SADD,RZ,CENTZ, ,1,1,-Zc,
+
+VCROSS,fX,fY,fZ,jX,jY,jZ,bx,by,bz
+
+SMULT,fxx,fx,vol,1,
+SMULT,fyy,fy,vol,1,
+SMULT,fzz,fz,vol,1,
+
+VCROSS,MX,MY,MZ,RX,RY,RZ,FXx,FYy,FZz
+
+
+SSUM
+*GET, FTX, SSUM, 0, Item, FXx,
+*GET, FTY, SSUM, 0, Item, FYy,
+*GET, FTZ, SSUM, 0, Item, FZz,
+*GET, MTX, SSUM, 0, Item, MX,
+*GET, MTY, SSUM, 0, Item, MY,
+*GET, MTZ, SSUM, 0, Item, MZ,
+
+
+
+*cfopen,L_forc,txt,,append
+*vwrite,FTX,FTY,FTZ,MTX,MTY,MTZ
+(6E13.5)
+*cfclos
+
+
+SET,next
+
+
+*enddo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
